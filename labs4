@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<head>
+		<title>Лабораторная работа 4</title>
+	</head>
+	<body>
+	<h1>Лабораторная работа 4<br>Нахождение кратчайшего пути в графе 4х4</h1>
+		<form method = "post" action = "index.php">
+			<table>
+				<tr>
+					<td>
+						<h1>Тип ввода: матрица 4х4</h1>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<textarea name = "graph" type = "text" placeholder = "весовая матрица" rows = "4" col = "4" ><?=$_POST['graph']?></textarea>
+					</td>
+				</tr>
+                <tr>
+					<td>
+                    <input name = "start" type = "text" placeholder = "Начало пути" value = "<?=$_POST['start']?>">
+					</td>
+				</tr>
+                <tr>
+					<td>
+                    <input name = "stop" type = "text" placeholder = "Конец пути" value = "<?=$_POST['stop']?>">
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<input class = "go" type = "submit" value = "Найти кратчайший путь">
+					</td>
+				</tr>
+			</table>
+		</form>
+		<div class = "code">
+		<?php
+            $graph = explode("\r\n", $_POST['graph']);
+            $top = $_POST['start'];
+            $end = $_POST['stop'];
+			$flag = 0;
+			$inf = 9999;
+			$flagTopEnd = 0;
+			$flagGraph = 0;
+			$flagGraphNeorintir = 0;
+			$countMax = 0;
+            
+			if ($_POST['graph'] != "") {
+                $flag++;
+			} else {
+               echo "<p>Введите весовую матрицу</p>"; 
+            }
+            if ($_POST['start'] != "") {
+                $flag++;
+			} else {
+                echo "<p>Введите начало пути</p>"; 
+            }
+            if ($_POST['stop'] != "") {
+                $flag++;
+			} else {
+                echo "<p>Введите конец пути</p>"; 
+            }
+            
+            if($flag == 3){
+				$graph = madeItDouble($graph);
+                validateS($top);
+				validateS($end);
+				validateF($graph);
+				if($flagGraphNeorintir != 0){
+					echo "Введите неориентированный граф";
+					return;
+				}
+
+                if(($flagTopEnd == 0) && ($flagGraph == 0)){
+					write($graph);
+					$way = findWay($graph);
+					result($way);
+
+                } else{
+			  	echo "Неверно введены данные";
+			  }
+            }
+			/** 
+			*функция в которой создается двумерный массив
+			*@global $flagGraph, $dl;
+			*@param $mass;
+			*@return $arr
+			**/
+			function madeItDouble($mass){
+				
+				global $flagGraph;
+				$dl = count($mass);
+
+				if($dl != 4){
+					$flagGraph++;
+				}
+
+				for($i = 0; $i < $dl; $i++){
+					$arr[$i] = explode(" ", $mass[$i] );
+				}
+
+				for($i = 0; $i < $dl; $i++){
+					if(count($arr[$i]) != 4){
+						$flagGraph++;
+					}
+				}
+
+				return $arr;
+			}
+
+			/**
+			*Валидация(проверка каждого символа на соответствие заданию) могут быть введены только 1,2,3,4;
+			*@global $flagTopEnd;
+			*@param $count;
+			*@return 
+			*/
+            function validateS($count){
+
+				global $flagTopEnd;
+
+                if($count == "1" || $count == "2" || $count == "3" || $count == "4"){
+                    
+                } else{
+					$flagTopEnd++;
+					echo "Введите номер вершины от 1 до 4 <br>";
+				}
+			}
+			
+			/**
+			*Валидация(проверка каждого символа на соответствие заданию) могут быть введены только числа и знак показывающий отсутствие прямой дороги "-";
+			*@global $flagGraph, $flagGraphNeorintir;
+			*@param $mass;
+			*@return 
+			*/
+			function validateF($mass){
+
+				global $flagGraph, $flagGraphNeorintir, $countNull;
+				$countNull = 0;
+
+				for ($i = 0; $i < 4; $i++) {
+					for ($j = 0; $j < 4; $j++) {
+						if($mass[0][0] != "-" || $mass[1][1] != "-" || $mass[2][2] != "-" || $mass[3][3] != "-"){
+							$flagGraph++;
+						}
+					}
+				}
+
+				for ($i = 0; $i < 4; $i++) {
+					for ($j = 0; $j < 4; $j++) {
+						if($mass[$i][$j] < 0){
+							$flagGraph++;
+						}
+					}
+				}
+
+				for ($i = 0; $i < 4; $i++) {
+					for ($j = 0; $j < 4; $j++) {
+						if($mass[$i][$j] != $mass[$j][$i]){
+							$flagGraphNeorintir++;
+						}
+					}
+				}
+
+				for ($i = 0; $i < 4; $i++) {
+					for ($j = 0; $j < 4; $j++) {
+						if($mass[$i][$j] == "-"){
+							$countNull++;
+						}
+					}
+				}
+
+				if($countNull == 16){
+					$flagGraph++;
+				}
+
+			}
+			/**
+			*Вывод весовой матрицы на страничку;
+			*@global 
+			*@param $mass;
+			*@return 
+			*/
+            function write($mass){
+                echo "Весовая матрица:";
+				for ($i = 0; $i < 4; $i++) {
+					echo "<br>";
+					for ($j = 0; $j < 4; $j++) {
+						echo " ".$mass[$i][$j];
+					}
+				}
+			}
+			/**
+			*Поиск путей с помощью алгоритма Дейкстры;
+			*@global $inf, $top, $v, $min, $mi, $t;
+			*@param $mass;
+			*@return $d;
+			*/
+			function findWay($mass){
+
+				global $inf, $top;
+
+				for ($i = 0; $i < 4; $i++) {
+						$d[$i] = $inf;
+						$v[$i] = 1;
+				}
+
+				$d[$top - 1] = 0;	
+
+				do {
+					$mi = $inf;
+					$min = $inf;
+					for ($i = 0; $i < 4; $i++) {
+						if ($v[$i] == 1 && $d[$i] < $min) {
+							$min = $d[$i];
+							$mi = $i;
+						}
+					}
+					if ($mi != $inf) {
+						for ($i = 0; $i < 4; $i++) {
+							if ($mass[$mi][$i] > 0 && is_numeric($mass[$mi][$i])) {
+								$t = $min + $mass[$mi][$i];
+								if ($t < $d[$i]) {
+									$d[$i] = $t;
+								}
+							}
+						}
+						$v[$mi] = 0;
+					}
+				} while ($mi < $inf);
+
+				return $d;
+			}	
+			/**
+			*Вывод результата;
+			*@global $end, $top;
+			*@param $d;
+			*@return 
+			*/
+			function result ($d) {
+
+				global $top, $end;
+
+				for ($i = 0; $i <= 4; $i++) {
+					if ($i != 0 && $i == $end) {
+						echo "<br> Кратчайший путь от вершины ".$top." до вершины ".$end." = ".$d[$i - 1];
+					}
+				}
+			}
+
+
+		?>
+		</div>
+		<p>Возможные примеры:</p>
+		<div class = "test">
+			<p>Неориентированный граф </p>
+       		<div>первый пример<br>
+        		- 78 56 73<br>
+        		78 - 132 121<br>
+        		56 132 - 64<br>
+        		73 121 64 -<br>
+        	</div>
+        	<div>второй пример<br>
+        		- 3 5 -<br>
+        		3 - 3 -<br>
+        		5 3 - 5<br>
+        		- - 5 - <br>
+        	</div>
+        	<div>третий пример<br>
+        		- - 3 1<br>
+        		- - 4 -<br>
+        		3 4 - -<br>
+        		1 - - -<br>
+        	</div>
+		</div>
+	</body>
+    </html>
